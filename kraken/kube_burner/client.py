@@ -59,3 +59,33 @@ def scrape_metrics(
         subprocess.run(command, shell=True, universal_newlines=True)
     except Exception as e:
         logging.error("Failed to run kube-burner, error: %s" % (e))
+
+
+def alerts(distribution, prometheus_url, prometheus_bearer_token, start_time, end_time, alert_profile):
+    """
+    Scrapes metrics defined in the profile from Prometheus and alerts based on the severity defined
+    """
+
+    if not prometheus_url:
+        logging.info("Looks like prometheus_url is not defined, trying to use the default instance on the cluster")
+        prometheus_url, prometheus_bearer_token = prometheus.instance(
+            distribution, prometheus_url, prometheus_bearer_token
+        )
+        command = (
+            "./kube-burner check-alerts "
+            + " -u "
+            + str(prometheus_url)
+            + " -t "
+            + str(prometheus_bearer_token)
+            + " -a "
+            + str(alert_profile)
+            + " --start "
+            + str(start_time)
+            + " --end "
+            + str(end_time)
+        )
+    try:
+        logging.info("Running kube-burner to capture the metrics: %s" % command)
+        subprocess.run(command, shell=True, universal_newlines=True)
+    except Exception as e:
+        logging.error("Failed to run kube-burner, error: %s" % (e))
