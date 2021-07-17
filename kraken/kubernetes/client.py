@@ -5,7 +5,7 @@ import logging
 import kraken.invoke.command as runcommand
 import json
 import sys
-import re
+
 
 kraken_node_name = ""
 
@@ -13,45 +13,11 @@ kraken_node_name = ""
 # Load kubeconfig and initialize kubernetes python client
 def initialize_clients(kubeconfig_path):
     global cli
-    config.load_kube_config(kubeconfig_path)
-    cli = client.CoreV1Api()
-
-
-# List all namespaces
-def list_namespaces(label_selector=None):
-    namespaces = []
     try:
-        if label_selector:
-            ret = cli.list_namespace(pretty=True, label_selector=label_selector)
-        else:
-            ret = cli.list_namespace(pretty=True)
+        config.load_kube_config(kubeconfig_path)
+        cli = client.CoreV1Api()
     except ApiException as e:
-        logging.error("Exception when calling CoreV1Api->list_namespaced_pod: %s\n" % e)
-    for namespace in ret.items:
-        namespaces.append(namespace.metadata.name)
-    return namespaces
-
-
-# Check if all the watch_namespaces are valid
-def check_namespaces(namespaces, label_selectors=None):
-    try:
-        valid_namespaces = list_namespaces(label_selectors)
-        regex_namespaces = set(namespaces) - set(valid_namespaces)
-        final_namespaces = set(namespaces) - set(regex_namespaces)
-        valid_regex = set()
-        if regex_namespaces:
-            for namespace in valid_namespaces:
-                for regex_namespace in regex_namespaces:
-                    if re.search(regex_namespace, namespace):
-                        final_namespaces.add(namespace)
-                        valid_regex.add(regex_namespace)
-                        break
-        invalid_namespaces = regex_namespaces - valid_regex
-        if invalid_namespaces:
-            raise Exception("There exists no namespaces matching: %s" % (invalid_namespaces))
-        return list(final_namespaces)
-    except Exception as e:
-        logging.info("%s" % (e))
+        logging.error("Failed to initialize kubernetes clinet: %s\n" % e)
         sys.exit(1)
 
 
@@ -89,13 +55,10 @@ def list_killable_nodes(label_selector=None):
 
 
 # List pods in the given namespace
-def list_pods(namespace, label_selector=None):
+def list_pods(namespace):
     pods = []
     try:
-        if label_selector:
-            ret = cli.list_namespaced_pod(namespace, pretty=True, label_selector=label_selector)
-        else:
-            ret = cli.list_namespaced_pod(namespace, pretty=True)
+        ret = cli.list_namespaced_pod(namespace, pretty=True)
     except ApiException as e:
         logging.error(
             "Exception when calling \
@@ -119,33 +82,20 @@ def get_all_pods(label_selector=None):
 
 
 # Execute command in pod
-def exec_cmd_in_pod(command, pod_name, namespace, container=None):
+def exec_cmd_in_pod(command, pod_name, namespace):
 
     exec_command = ["bash", "-c", command]
     try:
-        if container:
-            ret = stream(
-                cli.connect_get_namespaced_pod_exec,
-                pod_name,
-                namespace,
-                container=container,
-                command=exec_command,
-                stderr=True,
-                stdin=False,
-                stdout=True,
-                tty=False,
-            )
-        else:
-            ret = stream(
-                cli.connect_get_namespaced_pod_exec,
-                pod_name,
-                namespace,
-                command=exec_command,
-                stderr=True,
-                stdin=False,
-                stdout=True,
-                tty=False,
-            )
+        ret = stream(
+            cli.connect_get_namespaced_pod_exec,
+            pod_name,
+            namespace,
+            command=exec_command,
+            stderr=True,
+            stdin=False,
+            stdout=True,
+            tty=False,
+        )
     except Exception:
         return False
     return ret

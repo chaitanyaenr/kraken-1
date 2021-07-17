@@ -67,9 +67,9 @@ def main(cfg):
 
         # Cluster info
         logging.info("Fetching cluster info")
-        cluster_version = runcommand.invoke("kubectl get clusterversion")
+        cluster_version = runcommand.invoke("kubectl get clusterversion", 60)
         cluster_info = runcommand.invoke(
-            "kubectl cluster-info | awk 'NR==1' | sed -r " "'s/\x1B\[([0-9]{1,3}(;[0-9]{1,2})?)?[mGK]//g'"
+            "kubectl cluster-info | awk 'NR==1' | sed -r " "'s/\x1B\[([0-9]{1,3}(;[0-9]{1,2})?)?[mGK]//g'", 60
         )  # noqa
         logging.info("\n%s%s" % (cluster_version, cluster_info))
 
