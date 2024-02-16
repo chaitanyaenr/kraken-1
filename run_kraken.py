@@ -346,7 +346,7 @@ def main(cfg):
                             failed_post_scenarios, scenario_telemetries = network_chaos.run(scenarios_list, config, wait_duration, kubecli, telemetry_k8s)
 
                         # Check for critical alerts when enabled
-                        if enable_alerts and check_critical_alerts:
+                        if check_critical_alerts:
                             logging.info("Checking for critical alerts firing post choas")
 
                             ##PROM
